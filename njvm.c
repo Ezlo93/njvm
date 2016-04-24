@@ -16,6 +16,7 @@
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
 
+/*git test  */
 unsigned code[10] = {0};
 unsigned int stack[8] = {0};
 unsigned int programCounter = 0;
