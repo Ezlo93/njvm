@@ -16,7 +16,7 @@
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
 
-/*git test  */
+
 unsigned code[10] = {0};
 unsigned int stack[8] = {0};
 unsigned int programCounter = 0;
@@ -58,7 +58,12 @@ void exec(int instr){
 				   stack[topOfStack-1] = 0;
 				   topOfStack = topOfStack-1;
 				   break;
-	    case DIV : stack[topOfStack-2] = stack[topOfStack-2] / stack[topOfStack-1];
+	    case DIV : if(stack[topOfStack-1] == 0){
+					halt = 1;
+					printf("Division by zero!\n");
+				    break;
+				   }
+				   stack[topOfStack-2] = stack[topOfStack-2] / stack[topOfStack-1];
 				   stack[topOfStack-1] = 0;
 				   topOfStack = topOfStack-1;
 				   break;
@@ -67,7 +72,8 @@ void exec(int instr){
 				   topOfStack = topOfStack-1;
 				   break; 	
 				   			   		
-		case RDINT : scanf("%d", &input); 
+		case RDINT : 
+					 scanf("%d", &input); 
 					 stack[topOfStack] = input;
 					 topOfStack = topOfStack+1;
 					 break;
@@ -77,7 +83,8 @@ void exec(int instr){
 					 topOfStack = topOfStack-1;
 					 break;
 		
-		case RDCHR : stack[topOfStack] = getchar();
+		case RDCHR : 		
+					 stack[topOfStack] = getchar();
 					 topOfStack = topOfStack+1;
 					 break;
 		
@@ -134,7 +141,7 @@ void exec(int instr){
 		
 		 
 		code[0] = (PUSHC << 24) | IMMEDIATE(3);
-		code[1] = (PUSHC << 24) | IMMEDIATE (4);
+		code[1] = (PUSHC << 24) | IMMEDIATE (15);
 		code[2] =  (ADD<<24);
 		code[3]	= (PUSHC << 24) | IMMEDIATE(10);
 		code[4] =  (PUSHC << 24) | IMMEDIATE(6);
