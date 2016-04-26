@@ -102,6 +102,7 @@ void exec(int instr){
 	/*printStack();*/
 }
 
+/* MAIN */
    int main(int argc, char *argv[]) {
      char version[] = "1.0";
      unsigned int i = 0;
@@ -173,8 +174,29 @@ void exec(int instr){
 		 code[4] = (HALT<<24);
 		 
 	}else{
-	 printf("Unknown argument '%s', check out --help!\n", argv[1]);
-	 return 0;
+	 /* try to open the given file */
+	 FILE *file;
+	 if(! (file = fopen(argv[1], "r"))){
+		printf("File \"%s\" doesn't exist or can't be opened!", argv[1]);
+		return 0;
+	 }	
+	 
+	 /*?????
+	 while ( ( retval = read ( fd, &buf, 4)) > 0) {
+        if ( retval == 4) {
+            for ( each = 0; each < 4; each++) {
+                opcode[each] = buf[each];
+                arg1[each] = buf[each + 4];
+                arg2[each] = buf[each + 8];
+                arg3[each] = buf[each + 12];
+            }
+            
+        }
+    }
+	 */
+	 
+	 /*printf("Unknown argument '%s', check out --help!\n", argv[1]);
+	 return 0;*/
 	}
    }
      
