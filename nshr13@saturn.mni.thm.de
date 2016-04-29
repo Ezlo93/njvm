@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-/*Instruction codes*/
 #define HALT 0
 #define PUSHC 1
 #define ADD 2
@@ -14,12 +13,6 @@
 #define WRINT 8
 #define RDCHR 9
 #define WRCHR 10
-#define PUSHG 11
-#define POPG 12
-#define ASF 13
-#define RSF 14
-#define PUSHL 15
-#define POPL 16
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
 
@@ -46,7 +39,7 @@ void printStack(void){
 	printf("TOPOFSTACK=%d\n", topOfStack);
 }
 
-/*Stack push pop*/
+
 void push(int c){
 	if(topOfStack > sizeof(stack)){
 		halt = 1;
@@ -148,8 +141,7 @@ void exec(int instr){
 /*Load one of the three possible programs*/
 	}else if(strcmp(argv[1], "--prog1") == 0){
 		
-		code = malloc(50*sizeof(int));
-		variables = malloc(1*sizeof(int));
+		code = malloc(11*sizeof(int));
 		code[0] = (PUSHC << 24) | IMMEDIATE(3);
 		code[1] = (PUSHC << 24) | IMMEDIATE (4);
 		code[2] =  (ADD<<24);
@@ -163,8 +155,7 @@ void exec(int instr){
 		code[10]  =	 (HALT<<0);
 			 
 	}else if (strcmp(argv[1], "--prog2") == 0){
-		code = malloc(50*sizeof(int));
-		variables = malloc(1*sizeof(int));
+		code = malloc(9*sizeof(int));
 		code[0] = (PUSHC<<24) | IMMEDIATE(2);
 		code[1] =	(RDINT<<24);
 		code[2] = 	(MUL<<24);
@@ -176,8 +167,7 @@ void exec(int instr){
 		code[8] =	(HALT<<24);
 			
 	}else if(strcmp(argv[1], "--prog3") == 0){
-		 code = malloc(50*sizeof(int));
-		 variables = malloc(1*sizeof(int));
+		 code = malloc(5*sizeof(int));
 		 code[0] = (RDCHR<<24);
 		 code[1] = (WRINT<<24);
 		 code[2] = (PUSHC<<24)|IMMEDIATE(10);
@@ -248,13 +238,7 @@ void exec(int instr){
 			case SUB : printf("SUB\n"); break;
 			case WRCHR : printf("WRCHR\n"); break;
 			case WRINT : printf ("WRINT\n"); break;
-			case PUSHG : printf ("PUSHG\t%d\n", lastBits);break;
-			case POPG : printf ("POPG\t%d\n", lastBits);break;
-			case ASF : printf("ASF\t%d\n", lastBits);break;
-			case RSF : printf("RSF\n"); break;
-			case PUSHL : printf("PUSHL\t%d\n", lastBits); break;
-			case POPL : printf("POPL\t%d\n",lastBits); break;
-		default: printf("Unknown Instruction Code %d!\n", code[i]>>24);break;}
+		default: break;}
 
 	}
 
