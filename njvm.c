@@ -25,7 +25,6 @@ unsigned int halt = 0;
 unsigned int topOfStack = 0;
 unsigned int currentInstruction = 0;
 int input;
-char c;
 
 /*TEST Print Stack*/
 void printStack(void){
@@ -39,59 +38,63 @@ void printStack(void){
 	printf("TOPOFSTACK=%d\n", topOfStack);
 }
 
+
+void push(int c){
+	if(topOfStack > sizeof(stack)){
+		halt = 1;
+		printf("Stackoverflow!");
+	}
+	stack[topOfStack] = c;
+	topOfStack += 1;
+}
+
+int pop(){
+	topOfStack -= 1;
+	return stack[topOfStack];
+}
+
+/*sizet b = fread(a, sizeof(int), 100, fp);
+ * a
+ * */
+
 /*Executes the given insctruction*/
 void exec(int instr){
-
+    int tmp1, tmp2;
 	switch(instr >> 24){
-		case PUSHC : stack[topOfStack] = instr & mask; 
-					 topOfStack = topOfStack+1; 
+		case PUSHC : push(instr & mask);
 					 break;
-		case ADD : stack[topOfStack-2] = stack[topOfStack-2] + stack[topOfStack-1];
-				   stack[topOfStack-1] = 0;
-				   topOfStack = topOfStack-1;
+		case ADD : push(pop()+pop());
 				   break;
-	    case SUB : stack[topOfStack-2] = stack[topOfStack-2] - stack[topOfStack-1];
-				   stack[topOfStack-1] = 0;
-				   topOfStack = topOfStack-1;
+	    case SUB : tmp1 = pop(); tmp2 = pop();
+				   push(tmp2-tmp1);
 				   break;
-	    case MUL : stack[topOfStack-2] = stack[topOfStack-2] * stack[topOfStack-1];
-				   stack[topOfStack-1] = 0;
-				   topOfStack = topOfStack-1;
+	    case MUL : push(pop()*pop());
 				   break;
 	    case DIV : if(stack[topOfStack-1] == 0){
 					halt = 1;
 					printf("Division by zero!\n");
 				    break;
 				   }
-				   stack[topOfStack-2] = stack[topOfStack-2] / stack[topOfStack-1];
-				   stack[topOfStack-1] = 0;
-				   topOfStack = topOfStack-1;
+				   tmp1 = pop(); tmp2 = pop();
+				   push(tmp2/tmp1);
 				   break;
-	    case MOD : stack[topOfStack-2] = stack[topOfStack-2] % stack[topOfStack-1];
-				   stack[topOfStack-1] = 0;
-				   topOfStack = topOfStack-1;
+	    case MOD : tmp1 = pop(); tmp2 = pop();
+				   push(tmp2 % tmp1);
 				   break; 	
 				   			   		
 		case RDINT : 
 					 scanf("%d", &input); 
-					 stack[topOfStack] = input;
-					 topOfStack = topOfStack+1;
+					 push(input);
 					 break;
 		
-		case WRINT : printf("%d",stack[topOfStack-1]); 
-					 stack[topOfStack-1] = 0;
-					 topOfStack = topOfStack-1;
+		case WRINT : printf("%d",pop()); 
 					 break;
 		
 		case RDCHR : 		
-					 stack[topOfStack] = getchar();
-					 topOfStack = topOfStack+1;
+					 push(getchar());
 					 break;
 		
-		case WRCHR : c = (char)stack[topOfStack-1];
-					 printf("%c",c); 
-					 stack[topOfStack-1] = 0;
-					 topOfStack = topOfStack-1;
+		case WRCHR : printf("%c",(char)(pop())); 
 					 break;
 		case HALT : halt = 1;
 					break;
@@ -142,7 +145,7 @@ void exec(int instr){
 		
 		 
 		code[0] = (PUSHC << 24) | IMMEDIATE(3);
-		code[1] = (PUSHC << 24) | IMMEDIATE (15);
+		code[1] = (PUSHC << 24) | IMMEDIATE (4);
 		code[2] =  (ADD<<24);
 		code[3]	= (PUSHC << 24) | IMMEDIATE(10);
 		code[4] =  (PUSHC << 24) | IMMEDIATE(6);
