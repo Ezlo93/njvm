@@ -30,6 +30,7 @@ unsigned int topOfStack = 0;
 unsigned int programCounter = 0;
 unsigned int currentInstruction = 0;
 unsigned int halt = 0;
+int *variables;
 int input;
 char njvm[4];
 unsigned mask = (1<<24)-1;
@@ -43,7 +44,22 @@ void printStack(void){
 		if(stack[a] == 0){ break;}
 		printf("%d:\t%d\n", a, stack[a]); 
 	}
-	printf("TOPOFSTACK=%d\n", topOfStack);
+	printf("VAR\n");
+	for(a=0; a < sizeof(variables);a++){
+		printf("%d:\t%d\n", a, variables[a]);
+	}
+}
+
+/*Print int as bits*/
+void printBits(unsigned int num)
+{
+   int bit;
+   for(bit=0;bit<(sizeof(unsigned int) * 8); bit++)
+   {
+      printf("%i", num & 0x01);
+      num = num >> 1;
+   }
+   printf("\n");
 }
 
 /*Stack push pop*/
@@ -100,6 +116,10 @@ void exec(int instr){
 		
 		case WRCHR : printf("%c",(char)(pop())); 
 					 break;
+		case PUSHG : push(variables[instr&mask]);
+					 break;
+		case POPG : variables[instr&mask] = pop();
+					break;
 		case HALT : halt = 1;
 					break;
 				   		   
@@ -112,7 +132,7 @@ void exec(int instr){
 /* MAIN */
    int main(int argc, char *argv[]) {
      unsigned int i = 0;
-     int *code, *variables;
+     int *code;
      
      unsigned lastBits;
      int header[2] = {0};
@@ -218,11 +238,16 @@ void exec(int instr){
 	 /*Tests passed, read number of instructions/variables*/ 
 	 code = malloc(header[2] * sizeof(int));
 	 variables = malloc(header[3] * sizeof(int));
-	 
+	 for(i=0; i < sizeof(variables); i++){
+		 variables[i] = 0;
+	 }
 	 /*Copy instructions in code array*/
 	 fread(code, sizeof(int), header[2]* sizeof(int), file);
 	 
-	 fclose(file);
+	 if(fclose(file)){
+		 printf("File couldn't be closed!\n");
+		 return 0;
+	 }
 	}
    }
      
@@ -231,11 +256,11 @@ void exec(int instr){
 
 /*Print the program before executing it */
 	for(i = 0; i < sizeof(code); i++){
-		
+		/*printBits(code[i]);*/
 		printf("%03d:\t", i);
 		if(code[i] == 0){printf("HALT\n");break;}
 		
-		lastBits = code[i] & mask;
+		lastBits = code[i]& mask;
 		switch(code[i]>>24){
 			case PUSHC: printf("PUSHC\t%d\n", lastBits);break;
 			case ADD: printf("ADD\n"); break;
@@ -266,8 +291,8 @@ void exec(int instr){
 		exec(currentInstruction);
 	}
 
-	 free(code);
-     free(variables);
+	/* free(code);
+     free(variables);*/
      printf("Ninja Virtual Machine stopped\n");
      return 0;
    }
