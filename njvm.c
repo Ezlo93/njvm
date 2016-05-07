@@ -133,6 +133,7 @@ void exec(int instr){
    int main(int argc, char *argv[]) {
      unsigned int i = 0;
      int *code;
+     int codeSize=50;
      
      unsigned lastBits;
      int header[2] = {0};
@@ -237,6 +238,7 @@ void exec(int instr){
 	 
 	 /*Tests passed, read number of instructions/variables*/ 
 	 code = malloc(header[2] * sizeof(int));
+	 codeSize = header[2];
 	 variables = malloc(header[3] * sizeof(int));
 	 for(i=0; i < sizeof(variables); i++){
 		 variables[i] = 0;
@@ -254,8 +256,10 @@ void exec(int instr){
 
     printf("Ninja Virtual Machine started\n");
 
-/*Print the program before executing it */
-	for(i = 0; i < sizeof(code); i++){
+/*Print the program before executing it 
+    printf("File has %d steps\n", codeSize);*/
+    
+	for(i = 0; i < codeSize; i++){
 		/*printBits(code[i]);*/
 		printf("%03d:\t", i);
 		if(code[i] == 0){printf("HALT\n");break;}
