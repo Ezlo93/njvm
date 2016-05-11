@@ -20,13 +20,22 @@
 #define RSF 14
 #define PUSHL 15
 #define POPL 16
+#define EQ 17
+#define NE 18
+#define LT 19
+#define LE 20
+#define GT 21
+#define GE 22
+#define JMP 23
+#define BRF 24
+#define BRT 25
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
 
 int version = 2;
 
 unsigned int stack[100] = {0};
-unsigned int topOfStack = 0;
+unsigned int topOfStack = 0, framePointer = 0;
 unsigned int programCounter = 0;
 unsigned int currentInstruction = 0;
 unsigned int halt = 0;
@@ -39,15 +48,11 @@ unsigned mask = (1<<24)-1;
 void printStack(void){
 	int a;
 
-	printf("STACK\n");
-	for(a=0; a < sizeof(stack);a++){
-		if(stack[a] == 0){ break;}
+	printf("STACK ->%d\n", topOfStack);
+	for(a=0; a < topOfStack;a++){
 		printf("%d:\t%d\n", a, stack[a]); 
 	}
-	printf("VAR\n");
-	for(a=0; a < sizeof(variables);a++){
-		printf("%d:\t%d\n", a, variables[a]);
-	}
+
 }
 
 /*Print int as bits*/
@@ -67,7 +72,9 @@ void push(int c){
 	if(topOfStack > sizeof(stack)){
 		halt = 1;
 		printf("Stackoverflow!");
+	
 	}
+	
 	stack[topOfStack] = c;
 	topOfStack += 1;
 }
@@ -119,6 +126,17 @@ void exec(int instr){
 		case PUSHG : push(variables[instr&mask]);
 					 break;
 		case POPG : variables[instr&mask] = pop();
+					break;
+		case ASF  : push(framePointer);
+					framePointer = topOfStack;
+					topOfStack += instr&mask;
+					break;
+		case RSF :  topOfStack = framePointer;
+					framePointer = pop();
+					break;
+		case PUSHL : push(stack[framePointer+(instr&mask)]);
+					break;
+		case POPL : stack[framePointer+(instr&mask)] = pop();
 					break;
 		case HALT : halt = 1;
 					break;
@@ -283,6 +301,15 @@ void exec(int instr){
 			case RSF : printf("RSF\n"); break;
 			case PUSHL : printf("PUSHL\t%d\n", lastBits); break;
 			case POPL : printf("POPL\t%d\n",lastBits); break;
+			case EQ : printf("EQ\n"); break;
+			case NE : printf("NE\n"); break;
+			case LT : printf("LT\n"); break;
+			case LE : printf("LE\n"); break;
+			case GT : printf("GT\n"); break;
+			case GE : printf("GE\n"); break;
+			case JMP : printf("JMP\t%d\n", lastBits); break;
+			case BRF : printf("BRF\t%d\n", lastBits); break;
+			case BRT : printf("BRT\t%d\n", lastBits); break;
 		default: printf("Unknown Instruction Code %d!\n", code[i]>>24);break;}
 
 	}
