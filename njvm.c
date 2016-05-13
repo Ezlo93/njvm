@@ -32,7 +32,7 @@
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
 
-int version = 2;
+int version = 3;
 
 unsigned int stack[100] = {0};
 unsigned int topOfStack = 0, framePointer = 0;
@@ -138,6 +138,46 @@ void exec(int instr){
 					break;
 		case POPL : stack[framePointer+(instr&mask)] = pop();
 					break;
+		case EQ : 	push(pop()==pop());
+					break;
+		case NE : 	if(pop()!=pop()){
+						push(1);}
+					else{
+						push(0);}
+					break;
+		case LT : 	if(pop()>pop()){
+						push(1);}
+					else{
+						push(0);}
+					break;			
+		case LE : 	if(pop()>=pop()){
+						push(1);}
+					else{
+						push(0);}
+					break;
+		case GT : 	if(pop()<pop()){
+						push(1);}
+					else{
+						push(0);}
+					break;
+		case GE :	if(pop()<=pop()){
+						push(1);}
+					else{
+						push(0);}
+					break;
+		/*
+		case JMP :  programCounter = instr&mask;
+					break;
+		case BRF :  if(pop() == 0){
+						programCounter = instr&mask;
+					}
+					break;
+		case BRT :  if(pop() == 1){
+						programCounter = instr&mask;
+					}
+					break;
+			*/		
+					
 		case HALT : halt = 1;
 					break;
 				   		   
@@ -250,7 +290,7 @@ void exec(int instr){
 	 
 	 /*Check file version*/
 	 if(header[1] != version){
-		 printf("File not supported: NJVM version: %d, file version: %d\n", header[1], version);
+		 printf("File not supported: NJVM version: %d, file version: %d\n", version, header[1]);
 		 return 0;
 	 }
 	 
