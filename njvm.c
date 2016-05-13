@@ -29,6 +29,12 @@
 #define JMP 23
 #define BRF 24
 #define BRT 25
+#define CALL 26
+#define RET 27
+#define DROP 28
+#define PUSHR 29
+#define POPR 30
+#define DUP 31
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
 
@@ -39,33 +45,41 @@ unsigned int topOfStack = 0, framePointer = 0;
 unsigned int programCounter = 0;
 unsigned int currentInstruction = 0;
 unsigned int halt = 0;
+unsigned int debug = 0;
+signed int debugNextStep = 0;
+char debugInput[20];
 int *variables;
+int glVarSize=0;
 int input;
 char njvm[4];
 unsigned mask = (1<<24)-1;
 
-/*TEST Print Stack*/
+/*Print Stack*/
 void printStack(void){
 	int a;
-
-	printf("STACK ->%d\n", topOfStack);
+	printf("STACK\n");
+	printf("Stackpointer: %d\n", topOfStack);
+	
 	for(a=0; a < topOfStack;a++){
 		printf("%d:\t%d\n", a, stack[a]); 
 	}
-
 }
 
-/*Print int as bits*/
-void printBits(unsigned int num)
-{
-   int bit;
-   for(bit=0;bit<(sizeof(unsigned int) * 8); bit++)
-   {
-      printf("%i", num & 0x01);
-      num = num >> 1;
-   }
-   printf("\n");
+/*Print all global Variables*/
+void printGlobalVariables(void){
+	int a;
+	
+	if(glVarSize > 0){
+		printf("GLOBAL VARIABLES\n");
+		
+		for(a=0;a<glVarSize;a++){
+			printf("%03d: %d\n", a, variables[a]);
+		}
+	}else{
+		printf("NO GLOBAL VARIABLES\n");
+	}
 }
+
 
 /*Stack push pop*/
 void push(int c){
@@ -73,22 +87,30 @@ void push(int c){
 		halt = 1;
 		printf("Stackoverflow!");
 	
-	}
+	}else{
 	
-	stack[topOfStack] = c;
-	topOfStack += 1;
+		stack[topOfStack] = c;
+		topOfStack += 1;
+	}
 }
 
 int pop(){
-	topOfStack -= 1;
-	return stack[topOfStack];
+	if(topOfStack == 0){
+		halt = 1;
+		printf("Out of range! -1");
+		return 0;
+	}else{
+		topOfStack -= 1;
+		return stack[topOfStack];
+	}
 }
 
 /*Executes the given insctruction*/
 void exec(int instr){
     int tmp1, tmp2;
+    int lastBits=SIGN_EXTEND(instr&mask);
 	switch(instr >> 24){
-		case PUSHC : push(instr & mask);
+		case PUSHC : push(lastBits);
 					 break;
 		case ADD : push(pop()+pop());
 				   break;
@@ -109,8 +131,7 @@ void exec(int instr){
 				   push(tmp2 % tmp1);
 				   break; 	
 				   			   		
-		case RDINT : 
-					 scanf("%d", &input); 
+		case RDINT : scanf("%d", &input); 
 					 push(input);
 					 break;
 		
@@ -165,7 +186,7 @@ void exec(int instr){
 					else{
 						push(0);}
 					break;
-		/*
+		
 		case JMP :  programCounter = instr&mask;
 					break;
 		case BRF :  if(pop() == 0){
@@ -176,7 +197,7 @@ void exec(int instr){
 						programCounter = instr&mask;
 					}
 					break;
-			*/		
+			
 					
 		case HALT : halt = 1;
 					break;
@@ -184,7 +205,6 @@ void exec(int instr){
 		default: printf("Unknown Instruction '%d'!\n", instr >> 24); halt = 1; break;
 	}
 	
-	/*printStack();*/
 }
 
 /* MAIN */
@@ -223,6 +243,8 @@ void exec(int instr){
 	 printf("--prog1\t\tStart program 1\n");
 	 printf("--prog2\t\tStart program 2\n");
 	 printf("--prog3\t\tStart program 3\n");
+	 printf("file name\t\tExecute the file\n");
+	 printf("file name --debug\tExecute the file with debugger\n");
 	 return 0;
 /*Load one of the three possible programs*/
 	}else if(strcmp(argv[1], "--prog1") == 0){
@@ -297,10 +319,12 @@ void exec(int instr){
 	 /*Tests passed, read number of instructions/variables*/ 
 	 code = malloc(header[2] * sizeof(int));
 	 codeSize = header[2];
-	 variables = malloc(header[3] * sizeof(int));
-	 for(i=0; i < sizeof(variables); i++){
+	 glVarSize = header[3];
+	 variables = malloc(glVarSize * sizeof(int));
+	 for(i=0; i < glVarSize; i++){
 		 variables[i] = 0;
 	 }
+	 
 	 /*Copy instructions in code array*/
 	 fread(code, sizeof(int), header[2]* sizeof(int), file);
 	 
@@ -311,18 +335,25 @@ void exec(int instr){
 	}
    }
      
+     if(argc > 2){
+	  if(strcmp(argv[2], "--debug") == 0){
+		  debug = 1;
+	  }
+     }
+     
 
     printf("Ninja Virtual Machine started\n");
 
-/*Print the program before executing it 
-    printf("File has %d steps\n", codeSize);*/
+/*Print the program before executing it if debug enabled*/
+if(debug == 1){ 
+    printf("File has %d instructions\n", codeSize);
     
 	for(i = 0; i < codeSize; i++){
-		/*printBits(code[i]);*/
+		
 		printf("%03d:\t", i);
 		if(code[i] == 0){printf("HALT\n");break;}
 		
-		lastBits = code[i]& mask;
+		lastBits = SIGN_EXTEND(code[i]& mask);
 		switch(code[i]>>24){
 			case PUSHC: printf("PUSHC\t%d\n", lastBits);break;
 			case ADD: printf("ADD\n"); break;
@@ -353,10 +384,44 @@ void exec(int instr){
 		default: printf("Unknown Instruction Code %d!\n", code[i]>>24);break;}
 
 	}
+}
 
 /*Execute the loaded program*/
+	if(debug == 1){
+		printf(">>Debugger instructions: next, run, pstack, pgv, break, exit\n");
+	}
 	
 	while(!halt){
+		if(debug==1){
+			if(debugNextStep < 0){
+			  if( (debugNextStep*-1) == programCounter ){
+				  debugNextStep = 0;
+			  }	
+			}else{
+			debugNextStep = 0;
+			}
+			while(debugNextStep == 0){
+				printf("PC:%03d>>", programCounter);
+				scanf("%s", debugInput);
+				if(strcmp(debugInput, "exit") == 0){
+					exit(0);
+				}else if(strcmp(debugInput, "next") == 0){
+					debugNextStep = 1;
+				}else if(strcmp(debugInput, "run") == 0){
+					debug = 0;
+					debugNextStep = 1;
+				}else if(strcmp(debugInput, "pstack") == 0){
+					printStack();
+				}else if(strcmp(debugInput, "pgv") == 0){
+					printGlobalVariables();
+				}else if(strcmp(debugInput, "break") == 0){
+					printf("Breakpoint at line: ");
+					scanf("%d", &debugNextStep);
+					debugNextStep *= -1;
+				}
+			}
+		}
+		
 		currentInstruction = code[programCounter];
 		programCounter = programCounter+1;
 		exec(currentInstruction);
