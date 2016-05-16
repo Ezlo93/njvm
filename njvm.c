@@ -40,12 +40,14 @@
 
 int version = 3;
 
-unsigned int stack[100] = {0};
-unsigned int topOfStack = 0, framePointer = 0;
-unsigned int programCounter = 0;
-unsigned int currentInstruction = 0;
-unsigned int halt = 0;
-unsigned int debug = 0;
+int stack[100] = {0};
+int topOfStack = 0, framePointer = 0;
+int programCounter = 0;
+int returnAddress = 0;
+int returnValue = 0;
+int currentInstruction = 0;
+int halt = 0;
+int debug = 0;
 signed int debugNextStep = 0;
 char debugInput[20];
 int *variables;
@@ -197,8 +199,18 @@ void exec(int instr){
 						programCounter = instr&mask;
 					}
 					break;
-			
-					
+		case CALL :
+					break;
+		case RET : 
+					break;
+		case DROP : 
+					break;
+		case PUSHR : push(returnValue);
+					 break;
+		case POPR :  returnValue = pop();
+					 break;
+		case DUP :
+					break;
 		case HALT : halt = 1;
 					break;
 				   		   
@@ -381,6 +393,12 @@ if(debug == 1){
 			case JMP : printf("JMP\t%d\n", lastBits); break;
 			case BRF : printf("BRF\t%d\n", lastBits); break;
 			case BRT : printf("BRT\t%d\n", lastBits); break;
+			case CALL : printf("CALL\t%d\n", lastBits); break;
+			case RET : printf("RET\n"); break;
+			case DROP : printf("DROP\t%d\n", lastBits); break;
+			case PUSHR : printf("PUSHR\n"); break;
+			case POPR : printf("POPR\n"); break;
+			case DUP : printf("DUP\n"); break;
 		default: printf("Unknown Instruction Code %d!\n", code[i]>>24);break;}
 
 	}
