@@ -38,7 +38,7 @@
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
 
-int version = 3;
+int version = 4;
 
 int stack[100] = {0};
 int topOfStack = 0, framePointer = 0;
@@ -157,7 +157,7 @@ void exec(int instr){
 		case RSF :  topOfStack = framePointer;
 					framePointer = pop();
 					break;
-		case PUSHL : push(stack[framePointer+(instr&mask)]);
+		case PUSHL : push(stack[framePointer + (instr&mask)]);
 					break;
 		case POPL : stack[framePointer+(instr&mask)] = pop();
 					break;
@@ -199,17 +199,21 @@ void exec(int instr){
 						programCounter = instr&mask;
 					}
 					break;
-		case CALL :
+		case CALL : push(programCounter);
+					programCounter = instr&mask;
 					break;
-		case RET : 
+		case RET :  programCounter = pop();
 					break;
-		case DROP : 
+		case DROP : for(tmp1 = 0; tmp1 < (instr&mask); tmp1++){
+						pop();
+					}
 					break;
 		case PUSHR : push(returnValue);
 					 break;
 		case POPR :  returnValue = pop();
 					 break;
-		case DUP :
+		case DUP :  tmp1 = pop();
+					push(tmp1); push(tmp1);
 					break;
 		case HALT : halt = 1;
 					break;
@@ -323,7 +327,7 @@ void exec(int instr){
 	 }
 	 
 	 /*Check file version*/
-	 if(header[1] != version){
+	 if(header[1] > version){
 		 printf("File not supported: NJVM version: %d, file version: %d\n", version, header[1]);
 		 return 0;
 	 }
@@ -363,14 +367,12 @@ if(debug == 1){
 	for(i = 0; i < codeSize; i++){
 		
 		printf("%03d:\t", i);
-		if(code[i] == 0){printf("HALT\n");break;}
 		
 		lastBits = SIGN_EXTEND(code[i]& mask);
 		switch(code[i]>>24){
 			case PUSHC: printf("PUSHC\t%d\n", lastBits);break;
 			case ADD: printf("ADD\n"); break;
 			case DIV: printf("DIV\n"); break;
-			case HALT : printf("HALT\n"); break;
 			case MOD : printf("MOD\n"); break;
 			case MUL : printf("MUL\n"); break;
 			case RDCHR : printf("RDCHR\n"); break;
@@ -399,6 +401,7 @@ if(debug == 1){
 			case PUSHR : printf("PUSHR\n"); break;
 			case POPR : printf("POPR\n"); break;
 			case DUP : printf("DUP\n"); break;
+			case HALT : printf("HALT\n"); break;
 		default: printf("Unknown Instruction Code %d!\n", code[i]>>24);break;}
 
 	}
@@ -445,8 +448,10 @@ if(debug == 1){
 		exec(currentInstruction);
 	}
 
-	/* free(code);
-     free(variables);*/
+	 free(code);
+     free(variables);
+     
+     
      printf("Ninja Virtual Machine stopped\n");
      return 0;
    }
