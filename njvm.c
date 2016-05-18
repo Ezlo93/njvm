@@ -1,6 +1,12 @@
+/* njvm.c Executes ninja binary files
+ * 
+ * Nicolai Sehrt
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 
 /*Instruction codes*/
 #define HALT 0
@@ -41,17 +47,21 @@
 int version = 4;
 
 int stack[100] = {0};
-int topOfStack = 0, framePointer = 0;
+int stackPointer = 0, framePointer = 0;
 int programCounter = 0;
-int returnAddress = 0;
-int returnValue = 0;
-int currentInstruction = 0;
-int halt = 0;
-int debug = 0;
-signed int debugNextStep = 0;
-char debugInput[20];
 int *variables;
 int glVarSize=0;
+
+int returnAddress = 0;
+int returnValue = 0;
+
+int currentInstruction = 0;
+int halt = 0;
+
+int debug = 0;
+int debugNextStep = 0;
+char debugInput[20];
+
 int input;
 char njvm[4];
 unsigned mask = (1<<24)-1;
@@ -60,9 +70,9 @@ unsigned mask = (1<<24)-1;
 void printStack(void){
 	int a;
 	printf("STACK\n");
-	printf("Stackpointer: %d\n", topOfStack);
+	printf("Stackpointer: %d\n", stackPointer);
 	
-	for(a=0; a < topOfStack;a++){
+	for(a=0; a < stackPointer;a++){
 		printf("%d:\t%d\n", a, stack[a]); 
 	}
 }
@@ -85,25 +95,25 @@ void printGlobalVariables(void){
 
 /*Stack push pop*/
 void push(int c){
-	if(topOfStack > sizeof(stack)){
+	if(stackPointer > sizeof(stack)){
 		halt = 1;
-		printf("Stackoverflow!");
+		printf("Stackoverflow! %d", stackPointer);
 	
 	}else{
 	
-		stack[topOfStack] = c;
-		topOfStack += 1;
+		stack[stackPointer] = c;
+		stackPointer += 1;
 	}
 }
 
 int pop(){
-	if(topOfStack == 0){
+	if(stackPointer == 0){
 		halt = 1;
 		printf("Out of range! -1");
 		return 0;
 	}else{
-		topOfStack -= 1;
-		return stack[topOfStack];
+		stackPointer -= 1;
+		return stack[stackPointer];
 	}
 }
 
@@ -111,6 +121,7 @@ int pop(){
 void exec(int instr){
     int tmp1, tmp2;
     int lastBits=SIGN_EXTEND(instr&mask);
+    
 	switch(instr >> 24){
 		case PUSHC : push(lastBits);
 					 break;
@@ -121,7 +132,7 @@ void exec(int instr){
 				   break;
 	    case MUL : push(pop()*pop());
 				   break;
-	    case DIV : if(stack[topOfStack-1] == 0){
+	    case DIV : if(stack[stackPointer-1] == 0){
 					halt = 1;
 					printf("Division by zero!\n");
 				    break;
@@ -151,10 +162,10 @@ void exec(int instr){
 		case POPG : variables[instr&mask] = pop();
 					break;
 		case ASF  : push(framePointer);
-					framePointer = topOfStack;
-					topOfStack += instr&mask;
+					framePointer = stackPointer;
+					stackPointer += instr&mask;
 					break;
-		case RSF :  topOfStack = framePointer;
+		case RSF :  stackPointer = framePointer;
 					framePointer = pop();
 					break;
 		case PUSHL : push(stack[framePointer + (instr&mask)]);
@@ -248,6 +259,11 @@ void exec(int instr){
 
 
 /*React to command line arguments*/
+   if(argc == 1){
+	   printf("ERROR: No file specified!\n--help for help\n");
+	   return 0;
+   }
+
    if(argc > 1){
      
 	if(strcmp(argv[1], "--version") == 0){
@@ -333,13 +349,11 @@ void exec(int instr){
 	 }
 	 
 	 /*Tests passed, read number of instructions/variables*/ 
-	 code = malloc(header[2] * sizeof(int));
 	 codeSize = header[2];
 	 glVarSize = header[3];
+	 
+	 code = malloc(codeSize * sizeof(int));
 	 variables = malloc(glVarSize * sizeof(int));
-	 for(i=0; i < glVarSize; i++){
-		 variables[i] = 0;
-	 }
 	 
 	 /*Copy instructions in code array*/
 	 fread(code, sizeof(int), header[2]* sizeof(int), file);
@@ -413,6 +427,8 @@ if(debug == 1){
 	}
 	
 	while(!halt){
+		
+		/*Debugger*/
 		if(debug==1){
 			if(debugNextStep < 0){
 			  if( (debugNextStep*-1) == programCounter ){
