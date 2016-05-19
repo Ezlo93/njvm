@@ -117,6 +117,47 @@ int pop(){
 	}
 }
 
+/**/
+void printInstruction(int c){
+	int lastBits = SIGN_EXTEND(c & mask);
+		switch(c>>24){
+			case PUSHC: printf("PUSHC\t%d\n", lastBits);break;
+			case ADD: printf("ADD\n"); break;
+			case DIV: printf("DIV\n"); break;
+			case MOD : printf("MOD\n"); break;
+			case MUL : printf("MUL\n"); break;
+			case RDCHR : printf("RDCHR\n"); break;
+			case RDINT : printf("RDINT\n"); break;
+			case SUB : printf("SUB\n"); break;
+			case WRCHR : printf("WRCHR\n"); break;
+			case WRINT : printf ("WRINT\n"); break;
+			case PUSHG : printf ("PUSHG\t%d\n", lastBits);break;
+			case POPG : printf ("POPG\t%d\n", lastBits);break;
+			case ASF : printf("ASF\t%d\n", lastBits);break;
+			case RSF : printf("RSF\n"); break;
+			case PUSHL : printf("PUSHL\t%d\n", lastBits); break;
+			case POPL : printf("POPL\t%d\n",lastBits); break;
+			case EQ : printf("EQ\n"); break;
+			case NE : printf("NE\n"); break;
+			case LT : printf("LT\n"); break;
+			case LE : printf("LE\n"); break;
+			case GT : printf("GT\n"); break;
+			case GE : printf("GE\n"); break;
+			case JMP : printf("JMP\t%d\n", lastBits); break;
+			case BRF : printf("BRF\t%d\n", lastBits); break;
+			case BRT : printf("BRT\t%d\n", lastBits); break;
+			case CALL : printf("CALL\t%d\n", lastBits); break;
+			case RET : printf("RET\n"); break;
+			case DROP : printf("DROP\t%d\n", lastBits); break;
+			case PUSHR : printf("PUSHR\n"); break;
+			case POPR : printf("POPR\n"); break;
+			case DUP : printf("DUP\n"); break;
+			case HALT : printf("HALT\n"); break;
+		default: printf("Unknown Instruction Code %d!\n", c>>24);break;}
+	
+	
+}
+
 /*Executes the given insctruction*/
 void exec(int instr){
     int tmp1, tmp2;
@@ -245,7 +286,6 @@ void exec(int instr){
      int *code;
      int codeSize=50;
      
-     unsigned lastBits;
      int header[2] = {0};
 	 
 /*Arguments*/
@@ -386,42 +426,7 @@ if(debug == 1){
 	for(i = 0; i < codeSize; i++){
 		
 		printf("%03d:\t", i);
-		
-		lastBits = SIGN_EXTEND(code[i]& mask);
-		switch(code[i]>>24){
-			case PUSHC: printf("PUSHC\t%d\n", lastBits);break;
-			case ADD: printf("ADD\n"); break;
-			case DIV: printf("DIV\n"); break;
-			case MOD : printf("MOD\n"); break;
-			case MUL : printf("MUL\n"); break;
-			case RDCHR : printf("RDCHR\n"); break;
-			case RDINT : printf("RDINT\n"); break;
-			case SUB : printf("SUB\n"); break;
-			case WRCHR : printf("WRCHR\n"); break;
-			case WRINT : printf ("WRINT\n"); break;
-			case PUSHG : printf ("PUSHG\t%d\n", lastBits);break;
-			case POPG : printf ("POPG\t%d\n", lastBits);break;
-			case ASF : printf("ASF\t%d\n", lastBits);break;
-			case RSF : printf("RSF\n"); break;
-			case PUSHL : printf("PUSHL\t%d\n", lastBits); break;
-			case POPL : printf("POPL\t%d\n",lastBits); break;
-			case EQ : printf("EQ\n"); break;
-			case NE : printf("NE\n"); break;
-			case LT : printf("LT\n"); break;
-			case LE : printf("LE\n"); break;
-			case GT : printf("GT\n"); break;
-			case GE : printf("GE\n"); break;
-			case JMP : printf("JMP\t%d\n", lastBits); break;
-			case BRF : printf("BRF\t%d\n", lastBits); break;
-			case BRT : printf("BRT\t%d\n", lastBits); break;
-			case CALL : printf("CALL\t%d\n", lastBits); break;
-			case RET : printf("RET\n"); break;
-			case DROP : printf("DROP\t%d\n", lastBits); break;
-			case PUSHR : printf("PUSHR\n"); break;
-			case POPR : printf("POPR\n"); break;
-			case DUP : printf("DUP\n"); break;
-			case HALT : printf("HALT\n"); break;
-		default: printf("Unknown Instruction Code %d!\n", code[i]>>24);break;}
+		printInstruction(code[i]);
 
 	}
 }
@@ -443,7 +448,9 @@ if(debug == 1){
 			debugNextStep = 0;
 			}
 			while(debugNextStep == 0){
-				printf("PC:%03d>>", programCounter);
+				printf("%03d:\t", programCounter);
+				printInstruction(code[programCounter]);
+				printf(">>");
 				scanf("%s", debugInput);
 				if(strcmp(debugInput, "exit") == 0){
 					exit(0);
