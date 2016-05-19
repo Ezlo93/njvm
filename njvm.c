@@ -117,7 +117,8 @@ int pop(){
 	}
 }
 
-/**/
+/*Prints the given instruction*/
+
 void printInstruction(int c){
 	int lastBits = SIGN_EXTEND(c & mask);
 		switch(c>>24){
@@ -159,6 +160,7 @@ void printInstruction(int c){
 }
 
 /*Executes the given insctruction*/
+
 void exec(int instr){
     int tmp1, tmp2;
     int lastBits=SIGN_EXTEND(instr&mask);
@@ -411,7 +413,7 @@ void exec(int instr){
    }
      
      if(argc > 2){
-	  if(strcmp(argv[2], "--debug") == 0){
+	  if( !strcmp(argv[2], "--debug") || !strcmp(argv[2], "--d")){
 		  debug = 1;
 	  }
      }
@@ -429,6 +431,7 @@ if(debug == 1){
 		printInstruction(code[i]);
 
 	}
+	printf("\n");
 }
 
 /*Execute the loaded program*/
