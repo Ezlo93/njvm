@@ -157,20 +157,20 @@ void exec(int instr){
 		
 		case WRCHR : printf("%c",(char)(pop())); 
 					 break;
-		case PUSHG : push(variables[instr&mask]);
+		case PUSHG : push(variables[lastBits]);
 					 break;
-		case POPG : variables[instr&mask] = pop();
+		case POPG : variables[lastBits] = pop();
 					break;
 		case ASF  : push(framePointer);
 					framePointer = stackPointer;
-					stackPointer += instr&mask;
+					stackPointer += lastBits;
 					break;
 		case RSF :  stackPointer = framePointer;
 					framePointer = pop();
 					break;
-		case PUSHL : push(stack[framePointer + (instr&mask)]);
+		case PUSHL : push(stack[framePointer + lastBits]);
 					break;
-		case POPL : stack[framePointer+(instr&mask)] = pop();
+		case POPL : stack[framePointer+lastBits] = pop();
 					break;
 		case EQ : 	push(pop()==pop());
 					break;
@@ -200,22 +200,22 @@ void exec(int instr){
 						push(0);}
 					break;
 		
-		case JMP :  programCounter = instr&mask;
+		case JMP :  programCounter = lastBits;
 					break;
 		case BRF :  if(pop() == 0){
-						programCounter = instr&mask;
+						programCounter = lastBits;
 					}
 					break;
 		case BRT :  if(pop() == 1){
-						programCounter = instr&mask;
+						programCounter = lastBits;
 					}
 					break;
 		case CALL : push(programCounter);
-					programCounter = instr&mask;
+					programCounter = lastBits;
 					break;
 		case RET :  programCounter = pop();
 					break;
-		case DROP : for(tmp1 = 0; tmp1 < (instr&mask); tmp1++){
+		case DROP : for(tmp1 = 0; tmp1 < lastBits; tmp1++){
 						pop();
 					}
 					break;
