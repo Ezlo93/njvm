@@ -1,0 +1,12 @@
+Debugger
+
+	Start debugger with ./njvm filename --debug
+
+Instructions:
+
+	next: Next Step
+	run: Executes the rest of the program
+	break: Set a breakpoint
+	pstack: print the current stack
+	pgv: Print all global variables of the program
+	exit: Exits the VM

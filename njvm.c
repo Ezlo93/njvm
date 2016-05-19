@@ -141,6 +141,11 @@ void exec(int instr){
 				   push(tmp2/tmp1);
 				   break;
 	    case MOD : tmp1 = pop(); tmp2 = pop();
+				   if(tmp1 == 0){
+					halt = 1;
+					printf("Division by zero!\n");
+				    break;
+				   }
 				   push(tmp2 % tmp1);
 				   break; 	
 				   			   		
