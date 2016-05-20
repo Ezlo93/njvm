@@ -46,9 +46,10 @@
 
 int version = 4;
 
-int stack[100] = {0};
+int stack[10000] = {0};
 int stackPointer = 0, framePointer = 0;
 int programCounter = 0;
+
 int *variables;
 int glVarSize=0;
 
@@ -478,10 +479,6 @@ if(debug == 1){
 		programCounter = programCounter+1;
 		exec(currentInstruction);
 	}
-
-	 free(code);
-     free(variables);
-     
      
      printf("Ninja Virtual Machine stopped\n");
      return 0;
