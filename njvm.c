@@ -287,7 +287,7 @@ void exec(int instr){
    int main(int argc, char *argv[]) {
      unsigned int i = 0;
      int *code;
-     int codeSize=50;
+     int codeSize=11;
      
      int header[2] = {0};
 	 
