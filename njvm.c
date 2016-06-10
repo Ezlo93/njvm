@@ -2,11 +2,13 @@
  * 
  * Nicolai Sehrt
  */
-/* git test*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
+#define TRUE 1
+#define FALSE 0
 
 /*Instruction codes*/
 #define HALT 0
@@ -43,6 +45,25 @@
 #define DUP 31
 #define IMMEDIATE(x) ((x) & 0x00FFFFFF) 
 #define SIGN_EXTEND(i) ((i) & 0x00800000 ? (i) | 0xFF000000 : (i)) 
+
+/*typedef*/
+
+typedef struct{
+	unsigned int size;
+	unsigned char data[1];
+	
+} *Objref;
+
+typedef struct{
+	int isObjectRef;
+	union {
+		Objref objref;
+		int number;
+	} u;
+} StackSlot;
+
+
+/* global variables */
 
 int version = 4;
 
