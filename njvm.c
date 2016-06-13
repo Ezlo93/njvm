@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "bigint.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -48,26 +49,35 @@
 
 /*typedef*/
 
-typedef struct{
-	unsigned int size;
-	unsigned char data[1];
-	
-} *Objref;
 
 typedef struct{
 	int isObjectRef;
 	union {
-		Objref objref;
+		ObjRef objref;
 		int number;
 	} u;
 } StackSlot;
 
+typedef struct{
+	int nd;
+	unsigned char sign;
+	unsigned char digits[1];
+}Big;
+
+
+/*
+ * Objref interger = malloc(sizeof unsigned int + sizeof int)
+ * integer -> size = sizeof(int);
+ * *(int*)(integer->data) = 5;
+ * 
+ */
 
 /* global variables */
 
 int version = 4;
 
-int stack[10000] = {0};
+StackSlot *stack;
+int stackSize = 10000;
 int stackPointer = 0, framePointer = 0;
 int programCounter = 0;
 
@@ -95,7 +105,11 @@ void printStack(void){
 	printf("Stackpointer: %d\n", stackPointer);
 	
 	for(a=0; a < stackPointer;a++){
-		printf("%d:\t%d\n", a, stack[a]); 
+		if(stack[a].isObjectRef == 0){
+			printf("%d:\t%d\n", a, stack[a].u.number);
+		}else{
+			printf("%d:\t%p\n", a, (void *)stack[a].u.objref);
+		}
 	}
 }
 
@@ -117,13 +131,15 @@ void printGlobalVariables(void){
 
 /*Stack push pop*/
 void push(int c){
-	if(stackPointer > sizeof(stack)){
+	if(stackPointer > stackSize){
 		halt = 1;
 		printf("Stackoverflow! %d", stackPointer);
 	
 	}else{
 	
-		stack[stackPointer] = c;
+		stack[stackPointer].isObjectRef = 0;
+		stack[stackPointer].u.number = c;
+		
 		stackPointer += 1;
 	}
 }
@@ -135,7 +151,12 @@ int pop(){
 		return 0;
 	}else{
 		stackPointer -= 1;
-		return stack[stackPointer];
+		
+		if(stack[stackPointer].isObjectRef == 0){
+			return stack[stackPointer].u.number;
+		}else{
+			return 0;
+		}
 	}
 }
 
@@ -197,7 +218,7 @@ void exec(int instr){
 				   break;
 	    case MUL : push(pop()*pop());
 				   break;
-	    case DIV : if(stack[stackPointer-1] == 0){
+	    case DIV : if(stack[stackPointer-1].u.number == 0){
 					halt = 1;
 					printf("Division by zero!\n");
 				    break;
@@ -238,9 +259,10 @@ void exec(int instr){
 		case RSF :  stackPointer = framePointer;
 					framePointer = pop();
 					break;
-		case PUSHL : push(stack[framePointer + lastBits]);
+		case PUSHL : push(stack[framePointer + lastBits].u.number);
 					break;
-		case POPL : stack[framePointer+lastBits] = pop();
+		case POPL : stack[framePointer+lastBits].isObjectRef = 0;
+					stack[framePointer+lastBits].u.number = pop();
 					break;
 		case EQ : 	push(pop()==pop());
 					break;
@@ -440,6 +462,8 @@ void exec(int instr){
 	  }
      }
      
+     
+    stack = malloc(stackSize * sizeof(StackSlot));
 
     printf("Ninja Virtual Machine started\n");
 
