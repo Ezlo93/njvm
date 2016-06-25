@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "bigint.h"
+
+#include <bigint.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -52,17 +53,12 @@
 
 typedef struct{
 	int isObjectRef;
-	union {
-		ObjRef objref;
-		int number;
-	} u;
+	union{
+		ObjRef* objref;
+		ObjRef obj;
+	}u;
 } StackSlot;
 
-typedef struct{
-	int nd;
-	unsigned char sign;
-	unsigned char digits[1];
-}Big;
 
 
 /*
@@ -74,18 +70,18 @@ typedef struct{
 
 /* global variables */
 
-int version = 4;
+int version = 6;
 
 StackSlot *stack;
 int stackSize = 10000;
 int stackPointer = 0, framePointer = 0;
 int programCounter = 0;
 
-int *variables;
+StackSlot *variables;
 int glVarSize=0;
 
 int returnAddress = 0;
-int returnValue = 0;
+StackSlot returnValue;
 
 int currentInstruction = 0;
 int halt = 0;
@@ -105,8 +101,11 @@ void printStack(void){
 	printf("Stackpointer: %d\n", stackPointer);
 	
 	for(a=0; a < stackPointer;a++){
-		if(stack[a].isObjectRef == 0){
-			printf("%d:\t%d\n", a, stack[a].u.number);
+		if(stack[a].isObjectRef == FALSE){
+			bip.op1 = stack[a].u.obj;
+			printf("%d:\t", a);
+			bigPrint(stdout);
+			printf("\n");
 		}else{
 			printf("%d:\t%p\n", a, (void *)stack[a].u.objref);
 		}
@@ -121,7 +120,10 @@ void printGlobalVariables(void){
 		printf("GLOBAL VARIABLES\n");
 		
 		for(a=0;a<glVarSize;a++){
-			printf("%03d: %d\n", a, variables[a]);
+			bip.op1 = variables[a].u.obj;
+			printf("%03d: \n", a);
+			bigPrint(stdout);
+			printf("\n");
 		}
 	}else{
 		printf("NO GLOBAL VARIABLES\n");
@@ -130,33 +132,25 @@ void printGlobalVariables(void){
 
 
 /*Stack push pop*/
-void push(int c){
+void push(StackSlot *c){
 	if(stackPointer > stackSize){
 		halt = 1;
 		printf("Stackoverflow! %d", stackPointer);
 	
 	}else{
 	
-		stack[stackPointer].isObjectRef = 0;
-		stack[stackPointer].u.number = c;
-		
+		stack[stackPointer] = *c;
 		stackPointer += 1;
 	}
 }
 
-int pop(){
+StackSlot pop(){
 	if(stackPointer == 0){
 		halt = 1;
 		printf("Out of range! -1");
-		return 0;
 	}else{
 		stackPointer -= 1;
-		
-		if(stack[stackPointer].isObjectRef == 0){
-			return stack[stackPointer].u.number;
-		}else{
-			return 0;
-		}
+		return stack[stackPointer];
 	}
 }
 
@@ -207,9 +201,14 @@ void printInstruction(int c){
 void exec(int instr){
     int tmp1, tmp2;
     int lastBits=SIGN_EXTEND(instr&mask);
+    StackSlot *tmp;
     
 	switch(instr >> 24){
-		case PUSHC : push(lastBits);
+		case PUSHC : tmp = malloc(sizeof(StackSlot));
+					 bigFromInt(lastBits);
+					 (*tmp).isObjectRef = FALSE;
+					 (*tmp).u.obj = bip.res;
+					 push(tmp);
 					 break;
 		case ADD : push(pop()+pop());
 				   break;
@@ -235,7 +234,7 @@ void exec(int instr){
 				   push(tmp2 % tmp1);
 				   break; 	
 				   			   		
-		case RDINT : scanf("%d", &input); 
+		case RDINT : scanf("%d", &input);
 					 push(input);
 					 break;
 		
@@ -444,7 +443,7 @@ void exec(int instr){
 	 glVarSize = header[3];
 	 
 	 code = malloc(codeSize * sizeof(int));
-	 variables = malloc(glVarSize * sizeof(int));
+	 variables = malloc(glVarSize * sizeof(StackSlot));
 	 
 	 /*Copy instructions in code array*/
 	 fread(code, sizeof(int), header[2]* sizeof(int), file);
@@ -463,7 +462,7 @@ void exec(int instr){
      }
      
      
-    stack = malloc(stackSize * sizeof(StackSlot));
+    stack = malloc(stackSize * sizeof(*StackSlot));
 
     printf("Ninja Virtual Machine started\n");
 
@@ -482,7 +481,7 @@ if(debug == 1){
 
 /*Execute the loaded program*/
 	if(debug == 1){
-		printf(">>Debugger instructions: next, run, pstack, pgv, break, exit\n");
+		printf(">>Debugger instructions: next, run, pstack, pgv, break, inspect, exit\n");
 	}
 	
 	while(!halt){
@@ -512,6 +511,9 @@ if(debug == 1){
 					printStack();
 				}else if(strcmp(debugInput, "pgv") == 0){
 					printGlobalVariables();
+				}else if(strcmp(debugInput, "inspect" == 0){
+					/*inspect*/
+					
 				}else if(strcmp(debugInput, "break") == 0){
 					printf("Breakpoint at line: ");
 					scanf("%d", &debugNextStep);
