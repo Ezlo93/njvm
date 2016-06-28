@@ -55,7 +55,7 @@ typedef struct{
 	int isObjectRef;
 	union{
 		ObjRef* objref;
-		ObjRef obj;
+		ObjRef bigint;
 	}u;
 } StackSlot;
 
@@ -72,16 +72,16 @@ typedef struct{
 
 int version = 6;
 
-StackSlot *stack;
+StackSlot* stack[10000];
 int stackSize = 10000;
 int stackPointer = 0, framePointer = 0;
 int programCounter = 0;
 
-StackSlot *variables;
+StackSlot* variables;
 int glVarSize=0;
 
 int returnAddress = 0;
-StackSlot returnValue;
+StackSlot *returnValue;
 
 int currentInstruction = 0;
 int halt = 0;
@@ -101,13 +101,13 @@ void printStack(void){
 	printf("Stackpointer: %d\n", stackPointer);
 	
 	for(a=0; a < stackPointer;a++){
-		if(stack[a].isObjectRef == FALSE){
-			bip.op1 = stack[a].u.obj;
+		if((*stack[a]).isObjectRef == FALSE){
+			bip.op1 = (*stack[a]).u.bigint;
 			printf("%d:\t", a);
 			bigPrint(stdout);
 			printf("\n");
 		}else{
-			printf("%d:\t%p\n", a, (void *)stack[a].u.objref);
+			printf("%d:\t%p\n", a, (void *)(*stack[a]).u.objref);
 		}
 	}
 }
@@ -120,7 +120,7 @@ void printGlobalVariables(void){
 		printf("GLOBAL VARIABLES\n");
 		
 		for(a=0;a<glVarSize;a++){
-			bip.op1 = variables[a].u.obj;
+			bip.op1 = variables[a].u.bigint;
 			printf("%03d: \n", a);
 			bigPrint(stdout);
 			printf("\n");
@@ -130,21 +130,20 @@ void printGlobalVariables(void){
 	}
 }
 
-
+ 
 /*Stack push pop*/
 void push(StackSlot *c){
 	if(stackPointer > stackSize){
 		halt = 1;
 		printf("Stackoverflow! %d", stackPointer);
-	
 	}else{
 	
-		stack[stackPointer] = *c;
+		stack[stackPointer] = c;
 		stackPointer += 1;
 	}
 }
 
-StackSlot pop(){
+StackSlot* pop(){
 	if(stackPointer == 0){
 		halt = 1;
 		printf("Out of range! -1");
@@ -152,6 +151,7 @@ StackSlot pop(){
 		stackPointer -= 1;
 		return stack[stackPointer];
 	}
+	return NULL;
 }
 
 /*Prints the given instruction*/
@@ -199,7 +199,7 @@ void printInstruction(int c){
 /*Executes the given insctruction*/
 
 void exec(int instr){
-    int tmp1, tmp2;
+	int i;
     int lastBits=SIGN_EXTEND(instr&mask);
     StackSlot *tmp;
     
@@ -207,106 +207,220 @@ void exec(int instr){
 		case PUSHC : tmp = malloc(sizeof(StackSlot));
 					 bigFromInt(lastBits);
 					 (*tmp).isObjectRef = FALSE;
-					 (*tmp).u.obj = bip.res;
+					 (*tmp).u.bigint = bip.res;
 					 push(tmp);
 					 break;
-		case ADD : push(pop()+pop());
+		case ADD : tmp = malloc(sizeof(StackSlot));
+					bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					bigAdd();
+					(*tmp).isObjectRef = FALSE;
+					(*tmp).u.bigint = bip.res;
+				   push(tmp);
 				   break;
-	    case SUB : tmp1 = pop(); tmp2 = pop();
-				   push(tmp2-tmp1);
+	    case SUB : tmp = malloc(sizeof(StackSlot));
+					bip.op2 = (*pop()).u.bigint;
+					bip.op1 = (*pop()).u.bigint;
+					bigSub();
+					(*tmp).isObjectRef = FALSE;
+					(*tmp).u.bigint = bip.res;
+				   push(tmp);
 				   break;
-	    case MUL : push(pop()*pop());
+	    case MUL : tmp = malloc(sizeof(StackSlot));
+					bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					bigMul();
+					(*tmp).isObjectRef = FALSE;
+					(*tmp).u.bigint = bip.res;
+				   push(tmp);
 				   break;
-	    case DIV : if(stack[stackPointer-1].u.number == 0){
-					halt = 1;
-					printf("Division by zero!\n");
-				    break;
-				   }
-				   tmp1 = pop(); tmp2 = pop();
-				   push(tmp2/tmp1);
+	    case DIV : tmp = malloc(sizeof(StackSlot));
+					bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					bigDiv();
+					(*tmp).isObjectRef = FALSE;
+					(*tmp).u.bigint = bip.res;
+				   push(tmp);
 				   break;
-	    case MOD : tmp1 = pop(); tmp2 = pop();
-				   if(tmp1 == 0){
-					halt = 1;
-					printf("Division by zero!\n");
-				    break;
-				   }
-				   push(tmp2 % tmp1);
-				   break; 	
+/*u*/	    case MOD : tmp = malloc(sizeof(StackSlot));
+					bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					bigDiv();
+					(*tmp).isObjectRef = FALSE;
+					(*tmp).u.bigint = bip.rem;
+				   push(tmp);
+				   break;	
 				   			   		
 		case RDINT : scanf("%d", &input);
-					 push(input);
+					 bigFromInt(input);
+					 tmp = malloc(sizeof(StackSlot));
+					 (*tmp).isObjectRef = FALSE;
+					 (*tmp).u.bigint = bip.res;
+					 push(tmp);
 					 break;
 		
-		case WRINT : printf("%d",pop()); 
+		case WRINT : bip.op1 = (*pop()).u.bigint;
 					 break;
 		
-		case RDCHR : 		
-					 push(getchar());
+		case RDCHR : tmp = malloc(sizeof(StackSlot));
+					 bigFromInt(getchar());
+					 (*tmp).isObjectRef = FALSE;
+					 (*tmp).u.bigint = bip.res;
+					 push(tmp);
 					 break;
 		
-		case WRCHR : printf("%c",(char)(pop())); 
+		case WRCHR : bip.op1 = (*pop()).u.bigint;
+					 printf("%c",(char)(bigToInt())); 
 					 break;
-		case PUSHG : push(variables[lastBits]);
+		/*case PUSHG : push(variables[lastBits]);
 					 break;
-		case POPG : variables[lastBits] = pop();
+		case POPG : variables[lastBits] = pop();*/
 					break;
-		case ASF  : push(framePointer);
+		case ASF  : tmp = malloc(sizeof(StackSlot));
+				    bigFromInt(framePointer);
+					(*tmp).isObjectRef = FALSE;
+					(*tmp).u.bigint = bip.res;
+					push(tmp);
 					framePointer = stackPointer;
 					stackPointer += lastBits;
 					break;
 		case RSF :  stackPointer = framePointer;
-					framePointer = pop();
+					bip.op1 = (*pop()).u.bigint;
+					framePointer = bigToInt();
 					break;
-		case PUSHL : push(stack[framePointer + lastBits].u.number);
+		/*case PUSHL : push(stack[framePointer + lastBits]);
 					break;
-		case POPL : stack[framePointer+lastBits].isObjectRef = 0;
-					stack[framePointer+lastBits].u.number = pop();
+		case POPL : stack[framePointer+lastBits] = pop();
+					break;*/
+		case EQ : 	bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					if(bigCmp() == 0){
+						bigFromInt(1);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}else{
+						bigFromInt(0);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}
+					
 					break;
-		case EQ : 	push(pop()==pop());
+		case NE : 	bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					if(bigCmp() == 0){
+						bigFromInt(0);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}else{
+						bigFromInt(1);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}
+					
 					break;
-		case NE : 	if(pop()!=pop()){
-						push(1);}
-					else{
-						push(0);}
-					break;
-		case LT : 	if(pop()>pop()){
-						push(1);}
-					else{
-						push(0);}
+		case LT : 	bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					if(bigCmp() < 0){
+						bigFromInt(1);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}else{
+						bigFromInt(0);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}
+					
 					break;			
-		case LE : 	if(pop()>=pop()){
-						push(1);}
-					else{
-						push(0);}
+		case LE : 	bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					if(bigCmp() <= 0){
+						bigFromInt(1);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}else{
+						bigFromInt(0);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}
+					
 					break;
-		case GT : 	if(pop()<pop()){
-						push(1);}
-					else{
-						push(0);}
+		case GT : 	bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					if(bigCmp() > 0){
+						bigFromInt(1);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}else{
+						bigFromInt(0);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}
+					
 					break;
-		case GE :	if(pop()<=pop()){
-						push(1);}
-					else{
-						push(0);}
+		case GE :	bip.op1 = (*pop()).u.bigint;
+					bip.op2 = (*pop()).u.bigint;
+					if(bigCmp() >= 0){
+						bigFromInt(1);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}else{
+						bigFromInt(0);
+						tmp = malloc(sizeof(StackSlot));
+						(*tmp).isObjectRef = FALSE;
+						(*tmp).u.bigint = bip.res;
+						push(tmp);
+					}
+					
 					break;
-		
 		case JMP :  programCounter = lastBits;
 					break;
-		case BRF :  if(pop() == 0){
+		case BRF :  bip.op1 = (*pop()).u.bigint;
+					bigFromInt(0);
+					bip.op2 = bip.res;
+					if(bigCmp() == 0){
 						programCounter = lastBits;
 					}
 					break;
-		case BRT :  if(pop() == 1){
+		case BRT :  bip.op1 = (*pop()).u.bigint;
+					bigFromInt(1);
+					bip.op2 = bip.res;
+					if(bigCmp() == 0){
 						programCounter = lastBits;
 					}
 					break;
-		case CALL : push(programCounter);
+		case CALL : tmp = malloc(sizeof(StackSlot));
+				    bigFromInt(programCounter);
+					(*tmp).isObjectRef = FALSE;
+					(*tmp).u.bigint = bip.res;
+					push(tmp);
 					programCounter = lastBits;
 					break;
-		case RET :  programCounter = pop();
+		case RET :  bip.op1 = (*pop()).u.bigint;
+					programCounter = bigToInt();
 					break;
-		case DROP : for(tmp1 = 0; tmp1 < lastBits; tmp1++){
+		case DROP : for(i = 0; i < lastBits; i++){
 						pop();
 					}
 					break;
@@ -314,8 +428,8 @@ void exec(int instr){
 					 break;
 		case POPR :  returnValue = pop();
 					 break;
-		case DUP :  tmp1 = pop();
-					push(tmp1); push(tmp1);
+		case DUP :  tmp = pop();
+					push(tmp); push(tmp);
 					break;
 		case HALT : halt = 1;
 					break;
@@ -443,7 +557,7 @@ void exec(int instr){
 	 glVarSize = header[3];
 	 
 	 code = malloc(codeSize * sizeof(int));
-	 variables = malloc(glVarSize * sizeof(StackSlot));
+	 variables = malloc(glVarSize * sizeof(StackSlot*));
 	 
 	 /*Copy instructions in code array*/
 	 fread(code, sizeof(int), header[2]* sizeof(int), file);
@@ -460,9 +574,6 @@ void exec(int instr){
 		  debug = 1;
 	  }
      }
-     
-     
-    stack = malloc(stackSize * sizeof(*StackSlot));
 
     printf("Ninja Virtual Machine started\n");
 
@@ -511,7 +622,7 @@ if(debug == 1){
 					printStack();
 				}else if(strcmp(debugInput, "pgv") == 0){
 					printGlobalVariables();
-				}else if(strcmp(debugInput, "inspect" == 0){
+				}else if(strcmp(debugInput, "inspect") == 0){
 					/*inspect*/
 					
 				}else if(strcmp(debugInput, "break") == 0){
