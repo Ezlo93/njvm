@@ -1,5 +1,6 @@
 /* njvm.c Executes ninja binary files
  * 
+ * 
  * Nicolai Sehrt
  */
 
@@ -77,7 +78,7 @@ int stackSize = 10000;
 int stackPointer = 0, framePointer = 0;
 int programCounter = 0;
 
-StackSlot* variables;
+StackSlot* *variables;
 int glVarSize=0;
 
 int returnAddress = 0;
@@ -93,6 +94,22 @@ char debugInput[20];
 int input;
 char njvm[4];
 unsigned mask = (1<<24)-1;
+
+ObjRef oRef;
+
+/*library funtions*/
+
+ObjRef newPrimObject(int dataSize){
+	oRef = malloc(sizeof(unsigned int) + sizeof(int)*64);
+	oRef->size = sizeof(int);
+	*(int *)oRef->data = dataSize;
+	return oRef;
+}
+
+void fatalError(char *msg){
+	printf("%s", msg);
+	exit(0);
+}
 
 /*Print Stack*/
 void printStack(void){
@@ -120,7 +137,7 @@ void printGlobalVariables(void){
 		printf("GLOBAL VARIABLES\n");
 		
 		for(a=0;a<glVarSize;a++){
-			bip.op1 = variables[a].u.bigint;
+			bip.op1 = (*variables[a]).u.bigint;
 			printf("%03d: \n", a);
 			bigPrint(stdout);
 			printf("\n");
@@ -235,16 +252,16 @@ void exec(int instr){
 				   push(tmp);
 				   break;
 	    case DIV : tmp = malloc(sizeof(StackSlot));
-					bip.op1 = (*pop()).u.bigint;
 					bip.op2 = (*pop()).u.bigint;
+					bip.op1 = (*pop()).u.bigint;
 					bigDiv();
 					(*tmp).isObjectRef = FALSE;
 					(*tmp).u.bigint = bip.res;
 				   push(tmp);
 				   break;
-/*u*/	    case MOD : tmp = malloc(sizeof(StackSlot));
-					bip.op1 = (*pop()).u.bigint;
+	    case MOD : tmp = malloc(sizeof(StackSlot));
 					bip.op2 = (*pop()).u.bigint;
+					bip.op1 = (*pop()).u.bigint;
 					bigDiv();
 					(*tmp).isObjectRef = FALSE;
 					(*tmp).u.bigint = bip.rem;
@@ -260,6 +277,7 @@ void exec(int instr){
 					 break;
 		
 		case WRINT : bip.op1 = (*pop()).u.bigint;
+					 bigPrint(stdout);
 					 break;
 		
 		case RDCHR : tmp = malloc(sizeof(StackSlot));
@@ -272,9 +290,9 @@ void exec(int instr){
 		case WRCHR : bip.op1 = (*pop()).u.bigint;
 					 printf("%c",(char)(bigToInt())); 
 					 break;
-		/*case PUSHG : push(variables[lastBits]);
+		case PUSHG : push(variables[lastBits]);
 					 break;
-		case POPG : variables[lastBits] = pop();*/
+		case POPG : variables[lastBits] = pop();
 					break;
 		case ASF  : tmp = malloc(sizeof(StackSlot));
 				    bigFromInt(framePointer);
@@ -288,10 +306,10 @@ void exec(int instr){
 					bip.op1 = (*pop()).u.bigint;
 					framePointer = bigToInt();
 					break;
-		/*case PUSHL : push(stack[framePointer + lastBits]);
+		case PUSHL : push(stack[framePointer + lastBits]);
 					break;
 		case POPL : stack[framePointer+lastBits] = pop();
-					break;*/
+					break;
 		case EQ : 	bip.op1 = (*pop()).u.bigint;
 					bip.op2 = (*pop()).u.bigint;
 					if(bigCmp() == 0){
@@ -326,8 +344,8 @@ void exec(int instr){
 					}
 					
 					break;
-		case LT : 	bip.op1 = (*pop()).u.bigint;
-					bip.op2 = (*pop()).u.bigint;
+		case LT : 	bip.op2 = (*pop()).u.bigint;
+					bip.op1 = (*pop()).u.bigint;
 					if(bigCmp() < 0){
 						bigFromInt(1);
 						tmp = malloc(sizeof(StackSlot));
@@ -343,8 +361,8 @@ void exec(int instr){
 					}
 					
 					break;			
-		case LE : 	bip.op1 = (*pop()).u.bigint;
-					bip.op2 = (*pop()).u.bigint;
+		case LE : 	bip.op2 = (*pop()).u.bigint;
+					bip.op1 = (*pop()).u.bigint;
 					if(bigCmp() <= 0){
 						bigFromInt(1);
 						tmp = malloc(sizeof(StackSlot));
@@ -360,8 +378,8 @@ void exec(int instr){
 					}
 					
 					break;
-		case GT : 	bip.op1 = (*pop()).u.bigint;
-					bip.op2 = (*pop()).u.bigint;
+		case GT : 	bip.op2 = (*pop()).u.bigint;
+					bip.op1 = (*pop()).u.bigint;
 					if(bigCmp() > 0){
 						bigFromInt(1);
 						tmp = malloc(sizeof(StackSlot));
@@ -377,8 +395,8 @@ void exec(int instr){
 					}
 					
 					break;
-		case GE :	bip.op1 = (*pop()).u.bigint;
-					bip.op2 = (*pop()).u.bigint;
+		case GE :	bip.op2 = (*pop()).u.bigint;
+					bip.op1 = (*pop()).u.bigint;
 					if(bigCmp() >= 0){
 						bigFromInt(1);
 						tmp = malloc(sizeof(StackSlot));
