@@ -100,9 +100,9 @@ ObjRef oRef;
 /*library funtions*/
 
 ObjRef newPrimObject(int dataSize){
-	oRef = malloc(sizeof(unsigned int) + sizeof(int)*64);
-	oRef->size = sizeof(int);
-	*(int *)oRef->data = dataSize;
+	oRef = malloc(sizeof(unsigned int) + dataSize);
+	oRef->size = dataSize;
+	
 	return oRef;
 }
 
